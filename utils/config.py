@@ -4,6 +4,7 @@ import argparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "configs" 
+DEFAULT_CONFIG = CONFIG_DIR / "default.yaml"
 
 def load_config():
     parser = argparse.ArgumentParser()
@@ -11,22 +12,105 @@ def load_config():
     parser.add_argument(
         "--config",
         type=str,
-        default="default.yaml",
-        help="Name of the YAML file in configs/",
+        default=None,
+        help=(
+            "Optional YAML configuration that overrides configs/default.yaml. "
+            "Example: --config PSO.yaml"
+        ),
     )
 
     args, overrides = parser.parse_known_args()
 
-    config_path = CONFIG_DIR / f"{args.config}"
+    # Always load default.yaml first.
+    if not DEFAULT_CONFIG.is_file():
+        raise FileNotFoundError(
+            f"Default configuration file not found: {DEFAULT_CONFIG}"
+        )
 
-    if not config_path.is_file():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    default_cfg = OmegaConf.load(DEFAULT_CONFIG)
 
-    base_cfg = OmegaConf.load(config_path)
-    cli_cfg = OmegaConf.from_dotlist(_to_dotlist(overrides))
+    # All valid configuration fields should exist in default.yaml.
+    OmegaConf.set_struct(default_cfg, True)
 
-    cfg = OmegaConf.merge(base_cfg, cli_cfg)
+    # Optionally load a second YAML file.
+    if args.config is not None:
+        override_config_path = CONFIG_DIR / args.config
+
+        if not override_config_path.is_file():
+            raise FileNotFoundError(
+                f"Configuration file not found: {override_config_path}"
+            )
+
+        file_cfg = OmegaConf.load(override_config_path)
+    else:
+        file_cfg = OmegaConf.create()
+
+    # Parse additional command-line overrides
+    cli_cfg = OmegaConf.from_dotlist(overrides)
+
+    # Priority, from lowest to highest:
+    # default.yaml < selected YAML < command-line overrides
+    cfg = OmegaConf.merge(
+        default_cfg,
+        file_cfg,
+        cli_cfg,
+    )
+
     return cfg
+
+def store_config(
+    angle,
+    hx,
+    hy,
+    sx,
+    sy,
+    tx,
+    ty,
+    k1,
+    k2,
+    k3,
+    p1,
+    p2,
+    config_name="PSO",
+):
+    # Prevent directories from being included in the filename.
+    config_name = Path(config_name).name
+
+    # Allow either "PSO" or "PSO.yaml".
+    if config_name.lower().endswith((".yaml", ".yml")):
+        config_name = Path(config_name).stem
+
+    if not config_name:
+        raise ValueError("config_name cannot be empty.")
+
+    config_path = CONFIG_DIR / f"{config_name}.yaml"
+
+    CONFIG_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    config = OmegaConf.create({
+        "angle": float(angle),
+        "hx": float(hx),
+        "hy": float(hy),
+        "sx": float(sx),
+        "sy": float(sy),
+        "tx": float(tx),
+        "ty": float(ty),
+        "k1": float(k1),
+        "k2": float(k2),
+        "k3": float(k3),
+        "p1": float(p1),
+        "p2": float(p2),
+    })
+
+    OmegaConf.save(
+        config=config,
+        f=config_path,
+    )
+
+    return config_path
 
 def _to_dotlist(arguments):
     # ex) Convert ['--angle', '45'] into ['angle=45']

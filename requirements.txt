@@ -1,3 +1,5 @@
+scikit-learn
+mealpy
 numpy
 opencv-python
 omegaconf
