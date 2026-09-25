@@ -6,8 +6,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "configs" 
 DEFAULT_CONFIG = CONFIG_DIR / "default.yaml"
 
-def load_config():
-    parser = argparse.ArgumentParser()
+def load_config(arguments=None):
+    parser = argparse.ArgumentParser(add_help=False)
 
     parser.add_argument(
         "--config",
@@ -19,9 +19,8 @@ def load_config():
         ),
     )
 
-    args, overrides = parser.parse_known_args()
+    args, overrides = parser.parse_known_args(arguments)
 
-    # Always load default.yaml first.
     if not DEFAULT_CONFIG.is_file():
         raise FileNotFoundError(
             f"Default configuration file not found: {DEFAULT_CONFIG}"
@@ -29,10 +28,9 @@ def load_config():
 
     default_cfg = OmegaConf.load(DEFAULT_CONFIG)
 
-    # All valid configuration fields should exist in default.yaml.
+    # All valid configuration fields must exist in default.yaml.
     OmegaConf.set_struct(default_cfg, True)
 
-    # Optionally load a second YAML file.
     if args.config is not None:
         override_config_path = CONFIG_DIR / args.config
 
@@ -45,11 +43,14 @@ def load_config():
     else:
         file_cfg = OmegaConf.create()
 
-    # Parse additional command-line overrides
-    cli_cfg = OmegaConf.from_dotlist(overrides)
+    # Convert:
+    #     --angle 45 --tx 3
+    # into:
+    #     angle=45 tx=3
+    cli_cfg = OmegaConf.from_dotlist(
+        _to_dotlist(overrides)
+    )
 
-    # Priority, from lowest to highest:
-    # default.yaml < selected YAML < command-line overrides
     cfg = OmegaConf.merge(
         default_cfg,
         file_cfg,

@@ -1,19 +1,35 @@
 import numpy as np
 import cv2
+import argparse
+import pathlib
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+import flir_image_extractor
 
 from utils.config import load_config, store_config
-
-from utils.optimization import run_optimization, create_objective_function
+from utils.optimization import run_optimization, create_dataset_objective_function
 from utils.metrics import image_mutual_information
+from utils.camera_intrinsics import get_camera_matrix_from_camera
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--store", type=str, required=True, help="Name of config file for parameters to be stored in congigs/ ex. my_config or my_config.yaml")
-args = parser.parse_args()
 
-save_config_name = args.store # <--- save parameters to config file
+parser.add_argument(
+    "--store",
+    type=str,
+    required=True,
+    help=(
+        "Name of the config file in configs/. "
+        "Example: --store my_config or --store my_config.yaml"
+    ),
+)
 
-cfg = load_config()
+args, config_arguments = parser.parse_known_args()
+
+save_config_name = args.store
+
+# Only configuration-related arguments are passed onward.
+cfg = load_config(config_arguments)
 
 checkboard = cv2.imread("checkerboard_small.png")
 
@@ -23,20 +39,52 @@ tgt_camera = cfg.thermal_camera
 src_images = []
 tgt_images = []
 
-# src_image = np.load('visible.npy')
-# src_H, src_W = src_image.shape[:2]
+plant = "citrus"
+num_images = 20
 
-# tgt_image = np.load('thermal.npy').astype(np.float32)
-# tgt_H, tgt_W = tgt_image.shape[:2]
+thermal_dir = pathlib.Path("data\\" + plant + "\\train_thermal")
 
-# # resize source image to target dimensions
-# src_image =  cv2.resize(src_image, (tgt_W, tgt_H), interpolation=cv2.INTER_AREA)
+flir = flir_image_extractor.FlirImageExtractor()
 
-# # grayscale source image
-# src_gray = cv2.cvtColor(src_image, cv2.COLOR_RGB2GRAY)
+image_paths = sorted(
+    img
+    for img in thermal_dir.iterdir()
+    if img.is_file() and img.suffix.lower() == ".jpg"
+)
 
-# print("source:", src_gray.shape, np.min(src_gray), np.max(src_gray), src_gray.dtype)
-# print("target:", tgt_image.shape, np.min(tgt_image), np.max(tgt_image), tgt_image.dtype,  "\n")
+# Process at most num_images.
+image_paths = image_paths[:num_images]
+
+for img in tqdm(
+    image_paths,
+    desc="Extracting FLIR images",
+    unit="image",
+    dynamic_ncols=True,
+):
+    flir.process_image(img)
+
+    src_image = flir.get_rgb_np()
+    tgt_image = flir.get_thermal_np()
+
+    tgt_H, tgt_W = tgt_image.shape[:2]
+
+    # Resize the visible source to the thermal dimensions.
+    src_image = cv2.resize(
+        src_image,
+        (tgt_W, tgt_H),
+        interpolation=cv2.INTER_AREA,
+    )
+
+    # Convert visible RGB image to grayscale.
+    src_gray = cv2.cvtColor(
+        src_image,
+        cv2.COLOR_RGB2GRAY,
+    )
+
+    src_images.append(src_gray)
+    tgt_images.append(tgt_image)
+
+print(f"Finished extracting {len(src_images)} image pairs.")
 
 # --- Particle Swarm Optimization ---
 
@@ -69,9 +117,9 @@ upper_bounds = (
 
 camera_matrix = get_camera_matrix_from_camera(tgt_camera)
 
-objective_function = create_objective_function(
-    src_image=src_gray,
-    tgt_image=tgt_image,
+objective_function = create_dataset_objective_function(
+    src_images=src_images,
+    tgt_images=tgt_images,
     camera_matrix=camera_matrix,
     bins=256,
 )
@@ -82,7 +130,7 @@ best_parameters, best_mi = run_optimization(
     upper_bounds,
     parameter_names,
     epoch=20,
-    pop_size=100,
+    pop_size=50,
     c1=1.8,
     c2=1.2,
     w=0.9,

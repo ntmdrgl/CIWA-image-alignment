@@ -3,10 +3,8 @@ import cv2
 import matplotlib.pyplot as plt
 
 from utils.config import load_config, store_config
-
 from utils.optimization import run_optimization, create_objective_function
 from utils.metrics import image_mutual_information
-
 from utils.camera_intrinsics import get_camera_matrix_from_camera
 from utils.transformations import get_affine_matrix_from_cfg, get_distortion_coefficients_from_cfg
 
@@ -14,6 +12,7 @@ cfg = load_config()
 # save_config_name = "PSO" # <--- save parameters to config file
 
 src_image = np.load('visible.npy')
+# src_image = cv2.imread('data/citrus/train_thermal/IMG_0780.JPG-Visual.jpeg')
 src_H, src_W = src_image.shape[:2]
 
 tgt_image = np.load('thermal.npy').astype(np.float32)
