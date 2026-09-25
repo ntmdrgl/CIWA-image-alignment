@@ -23,7 +23,6 @@ print(camera_matrix, "\n")
 
 print("Affine matrix:")
 print(affine_matrix, "\n")
-# new_H, new_W = get_affine_dimensions(H, W, affine_matrix)
 
 print("Distortion Coefficients:")
 print(dist_coeffs, "\n")

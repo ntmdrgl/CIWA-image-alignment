@@ -36,3 +36,6 @@ for index, img in enumerate(thermal_dir.iterdir()):
 
     # cv2.imwrite('visible.png', cv2.cvtColor(embedded_img, cv2.COLOR_BGR2RGB))
     # cv2.imwrite('thermal.png', thermal_img)
+
+    np.save('thermal.npy', thermal_img)
+    np.save('visible.npy', embedded_img)
