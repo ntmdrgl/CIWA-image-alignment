@@ -2,6 +2,15 @@
 
 import numpy as np
 
+def calculate_camera_intrinsics(H, W, HFOV, VFOV):
+    fx = (W / 2) / np.tan(np.radians(HFOV / 2)).astype(np.float32).item()
+    fy = (H / 2) / np.tan(np.radians(VFOV / 2)).astype(np.float32).item()
+
+    cx = W / 2
+    cy = H / 2
+
+    return fx, fy, cx, cy
+
 def get_camera_matrix_from_camera(camera):
     """
     Updates camera with calculated focal lengths and image centers
@@ -16,15 +25,6 @@ def get_camera_matrix_from_camera(camera):
     ], dtype=np.float32)
 
     return camera_matrix
-
-def calculate_camera_intrinsics(H, W, HFOV, VFOV):
-    fx = (W / 2) / np.tan(np.radians(HFOV / 2)).astype(np.float32).item()
-    fy = (H / 2) / np.tan(np.radians(VFOV / 2)).astype(np.float32).item()
-
-    cx = W / 2
-    cy = H / 2
-
-    return fx, fy, cx, cy
 
 def _calculate_camera_intrinsics_from_camera(camera):
     fx, fy, cx, cy = calculate_camera_intrinsics(

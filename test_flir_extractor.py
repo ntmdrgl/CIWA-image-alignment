@@ -8,8 +8,8 @@ import pathlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--plant", type=str, required=True, help="Name of the plant dataset in data directory")
-parser.add_argument("--num_images", type=int, required=False, help="The number of images", default=1)
-parser.add_argument("--start_img", type=int, required=False, help="The starting image index", default=0)
+parser.add_argument("--num_images", type=int, help="The number of images", default=1)
+parser.add_argument("--start_img", type=int, help="The starting image index", default=0)
 args = parser.parse_args()
 
 thermal_dir = pathlib.Path("data\\" + args.plant + "\\train_thermal")
@@ -33,3 +33,6 @@ for index, img in enumerate(thermal_dir.iterdir()):
     print(f"embedded_img: shape: {embedded_img.shape}, dtype: {embedded_img.dtype}")
 
     flir.plot()
+
+    # cv2.imwrite('visible.png', cv2.cvtColor(embedded_img, cv2.COLOR_BGR2RGB))
+    # cv2.imwrite('thermal.png', thermal_img)
