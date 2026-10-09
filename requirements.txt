@@ -1,7 +1,10 @@
 scikit-learn
-mealpy
-numpy
 opencv-python
+numpy
+mealpy
+
+hydra-core
 omegaconf
+
 matplotlib
 tqdm
