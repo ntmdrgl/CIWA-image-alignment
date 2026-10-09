@@ -1,0 +1,3 @@
+path: data\citrus\train_thermal
+thermal_camera: flir_one_pro_thermal
+visible_camera: flir_one_pro_visible

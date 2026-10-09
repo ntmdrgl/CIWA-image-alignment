@@ -1,0 +1,13 @@
+defaults:
+  - dataset: citrus
+  - __self__
+
+objective:
+  metric: mutual_information
+
+transform:
+  use_distortion: true
+
+hydra:
+  run:
+    dir: runs/${now:%Y-%m-%d_%H-%M-%S}
