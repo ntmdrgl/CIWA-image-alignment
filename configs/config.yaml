@@ -1,6 +1,6 @@
 defaults:
   - dataset: citrus
-  - __self__
+  - _self_
 
 objective:
   metric: mutual_information
